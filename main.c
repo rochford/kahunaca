@@ -37,7 +37,6 @@ int main(int argc, char **argv)
     int rc = sqlite3_open("test.db", &db);
 
     create_tables(db, zErrMsg);
-
     BIGNUM ser = getNextSerialNumber(db);
 
     SSLeay_add_all_algorithms();
@@ -47,8 +46,9 @@ int main(int argc, char **argv)
     BIO *bio_err = BIO_new_fp(stdout, BIO_NOCLOSE);
 
     if (argc != 2) {
-        BIO_printf(bio_err, "usage: ./openssl_hw common_name\n");
-        BIO_printf(bio_err, "usage: ./openssl_hw (revoke) serial\n");
+        BIO_printf(bio_err, "usage: ./kahuna_ca common_name\n");
+        BIO_printf(bio_err, "usage: ./kahuna_ca (revoke) serial\n");
+        BIO_printf(bio_err, "usage: ./kahuna_ca crl\n");
 
         BIO_free(bio_err);
         return(0);
