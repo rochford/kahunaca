@@ -78,11 +78,11 @@ void create_cert(BIO* bio_err,
         return;
     }
 
-    BIO *in = BIO_new(BIO_s_mem());
-
     BIO* b64 = BIO_new(BIO_f_base64());
-    in = BIO_push(b64, in);
-    int err = i2d_PKCS12_bio(in, p12);
+    BIO *in = BIO_new(BIO_s_mem());
+    b64 = BIO_push(b64, in);
+//    in = BIO_push(b64, in);
+    int err = i2d_PKCS12_bio(b64, p12);
     BIO_flush(b64);
 
     // write it to file
@@ -92,11 +92,11 @@ void create_cert(BIO* bio_err,
 
     BIO_get_mem_ptr(b64, &bptr);
 
-    char *buff = (char *)malloc( 8096 /* bptr->length */);
+    char *buff = (char *)malloc(bptr->length);
     memcpy(buff, bptr->data, bptr->length-1);
     buff[bptr->length-1] = 0;
 
-    printf("PKCS #12 %d:\n", bptr->length);
+//    printf("PKCS #12 %d:\n", bptr->length);
     printf("%s\n",buff);
 
     insert_cert(db, zErrMsg, serialStr, subj, issuer, buff);

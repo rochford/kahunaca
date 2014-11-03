@@ -38,20 +38,16 @@ BIGNUM getNextSerialNumber(sqlite3 *db)
     BIGNUM *num = NULL;
     if (SQLITE_OK == rc)
     {
-        char *serial = NULL;
         int res = sqlite3_step(select_stmt);
-        while (res == SQLITE_ROW) {
-            serial = (char*)sqlite3_column_text(select_stmt, 0);
+        if (res == SQLITE_ROW) {
+            char *serial = (char*)sqlite3_column_text(select_stmt, 0);
             res = sqlite3_step(select_stmt);
+            serialNumberStringToBigNum(serial, &num);
+            BN_add(num, num, &one);
+            return *num;
         }
-        serialNumberStringToBigNum(serial, &num);
-        BN_add(num, num, &one);
-        return *num;
     }
-    else
-    {
-        return one;
-    }
+    return one;
 }
 
 int serialNumberStringToBigNum(char* text, BIGNUM **result)

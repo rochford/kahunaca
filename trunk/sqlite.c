@@ -21,7 +21,6 @@
 */
 
 #include <stdlib.h>
-//#include <stdio.h>
 #include "sqlite.h"
 #include "sqlconstants.h"
 
@@ -63,21 +62,13 @@ int update_serial(sqlite3 *db, char* serial)
 int update_crl_number(sqlite3 *db, char* errorMsg, char* crl_number)
 {
     sqlite3_stmt *select_stmt = NULL;
-    char* output = sqlite3_mprintf(KCA_SQL_UPDATE_CRLNUMBER, crl_number);
+    char* output = sqlite3_mprintf(KCA_SQL_UPDATE_CRL_NUMBER, crl_number);
 
     int rc = sqlite3_prepare_v2(db, output, -1, &select_stmt, NULL);
     if (SQLITE_OK == rc)
     {
         sqlite3_step(select_stmt);
     }
-    sqlite3_free(output);
-    return rc;
-}
-
-int setup_cert_meta_data(sqlite3 *db, char* errorMsg)
-{
-    char* output = sqlite3_mprintf(KCA_SQL_UPDATE_SERIAL_AND_CRL, '1', '1');
-    int rc = sqlite3_exec(db, output, NULL, 0, &errorMsg);
     sqlite3_free(output);
     return rc;
 }
