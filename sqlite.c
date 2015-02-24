@@ -21,15 +21,16 @@
 */
 
 #include <stdlib.h>
+#include <string.h> // strlen
 #include "sqlite.h"
 #include "sqlconstants.h"
 
 sqlite3_stmt * get_revoked(sqlite3 *db, char* errorMsg)
 {
-    sqlite3_stmt *select_stmt = NULL;
+    sqlite3_stmt *stmt = NULL;
 
-    int rc = sqlite3_prepare_v2(db, KCA_SQL_SELECT_REVOKED_CERTS, -1, &select_stmt, NULL);
-    return rc == 0 ? select_stmt : NULL;
+    int rc = sqlite3_prepare_v2(db, KCA_SQL_SELECT_REVOKED_CERTS, -1, &stmt, NULL);
+    return rc == 0 ? stmt : NULL;
 }
 
 void get_revoked_item(sqlite3_stmt *stmt, char** serial, char** timestamp)
@@ -45,60 +46,101 @@ int create_tables(sqlite3 *db, char* errorMsg)
     return rc;
 }
 
-int update_serial(sqlite3 *db, char* serial)
+int update_serial(sqlite3 *db,
+                  const char* serial)
 {
-    sqlite3_stmt *select_stmt = NULL;
-    char* output = sqlite3_mprintf(KCA_SQL_UPDATE_SERIAL_NUMBER, serial);
-
-    int rc = sqlite3_prepare_v2(db, output, -1, &select_stmt, NULL);
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(db,
+                                KCA_SQL_UPDATE_SERIAL_NUMBER,
+                                strlen(KCA_SQL_UPDATE_SERIAL_NUMBER),
+                                &stmt,
+                                NULL);
     if (SQLITE_OK == rc)
     {
-        sqlite3_step(select_stmt);
+        sqlite3_bind_text(stmt,1,serial,strlen(serial),NULL);
+        sqlite3_step(stmt);
     }
-    sqlite3_free(output);
+    sqlite3_finalize(stmt);
     return rc;
 }
 
-int update_crl_number(sqlite3 *db, char* errorMsg, char* crl_number)
+int update_crl_number(sqlite3 *db,
+                      char* errorMsg,
+                      const char* crl_number)
 {
-    sqlite3_stmt *select_stmt = NULL;
-    char* output = sqlite3_mprintf(KCA_SQL_UPDATE_CRL_NUMBER, crl_number);
-
-    int rc = sqlite3_prepare_v2(db, output, -1, &select_stmt, NULL);
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(db,
+                                KCA_SQL_UPDATE_CRL_NUMBER,
+                                strlen(KCA_SQL_UPDATE_CRL_NUMBER),
+                                &stmt,
+                                NULL);
     if (SQLITE_OK == rc)
     {
-        sqlite3_step(select_stmt);
+        sqlite3_bind_text(stmt,1,crl_number,strlen(crl_number),NULL);
+        sqlite3_step(stmt);
     }
-    sqlite3_free(output);
+    sqlite3_finalize(stmt);
     return rc;
 }
 
-int insert_cert(sqlite3 *db, char* errorMsg, char* serial, char* subject, char* issuer, char* pkcs12)
+int insert_cert(sqlite3 *db,
+                char* errorMsg,
+                const char* serial,
+                const char* subject,
+                const char* issuer,
+                const char* pkcs12)
 {
-    char* output = sqlite3_mprintf(KCA_SQL_INSERT_CERT, serial, subject, issuer, pkcs12 );
-    int rc = sqlite3_exec(db, output, NULL, 0, &errorMsg);
-    sqlite3_free(output);
-    return rc;
-}
-
-int revoke_cert(sqlite3 *db, char* timestamp, char* serial)
-{
-    sqlite3_stmt *select_stmt = NULL;
-    char* output = sqlite3_mprintf(KCA_SQL_REVOKE_CERT, timestamp, serial);
-
-    int rc = sqlite3_prepare_v2(db, output, -1, &select_stmt, NULL);
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(db, KCA_SQL_INSERT_CERT, strlen(KCA_SQL_INSERT_CERT), &stmt, NULL);
     if (SQLITE_OK == rc)
     {
-        sqlite3_step(select_stmt);
+        sqlite3_bind_text(stmt,1,serial,strlen(serial),NULL);
+        sqlite3_bind_text(stmt,2,subject,strlen(subject),NULL);
+        sqlite3_bind_text(stmt,3,issuer,strlen(issuer),NULL);
+        sqlite3_bind_text(stmt,4,pkcs12,strlen(pkcs12),NULL);
+        sqlite3_step(stmt);
     }
-    sqlite3_free(output);
+    sqlite3_finalize(stmt);
     return rc;
 }
 
-int insert_crl(sqlite3 *db, char* errorMsg, char* serial, char* data)
+int revoke_cert(sqlite3 *db,
+                const char* timestamp,
+                const char* serial)
 {
-    char* output = sqlite3_mprintf(KCA_SQL_INSERT_CRL, serial, data);
-    int rc = sqlite3_exec(db, output, NULL, 0, &errorMsg);
-    sqlite3_free(output);
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(db,
+                                KCA_SQL_REVOKE_CERT,
+                                strlen(KCA_SQL_REVOKE_CERT),
+                                &stmt,
+                                NULL);
+    if (SQLITE_OK == rc)
+    {
+        sqlite3_bind_text(stmt,1,timestamp,strlen(timestamp),NULL);
+        sqlite3_bind_text(stmt,2,serial,strlen(serial),NULL);
+        sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+    return rc;
+}
+
+int insert_crl(sqlite3 *db,
+               char* errorMsg,
+               const char* serial,
+               const  char* data)
+{
+    sqlite3_stmt *stmt = NULL;
+    int rc = sqlite3_prepare_v2(db,
+                                KCA_SQL_INSERT_CRL,
+                                strlen(KCA_SQL_INSERT_CRL),
+                                &stmt,
+                                NULL);
+    if (SQLITE_OK == rc)
+    {
+        sqlite3_bind_text(stmt,1,serial,strlen(serial),NULL);
+        sqlite3_bind_text(stmt,2,data,strlen(data),NULL);
+        sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
     return rc;
 }

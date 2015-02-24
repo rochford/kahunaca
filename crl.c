@@ -27,7 +27,7 @@
 #include "sqlite.h"
 
 X509_REVOKED *
-makeRevoked(sqlite3 *db, BIO *err,char *serialNumber,  char* timestamp)
+makeRevoked(sqlite3 *db, BIO *err, const char *serialNumber, const char* timestamp)
 {
     revoke_cert(db, timestamp, serialNumber);
 
@@ -35,20 +35,25 @@ makeRevoked(sqlite3 *db, BIO *err,char *serialNumber,  char* timestamp)
     BIGNUM *bn = NULL;
     ASN1_ENUMERATED *rtmp = NULL;
 
-    if (!r) {
+    if (!r)
+    {
         BIO_printf(err, "Unable to create an "
                    "X509_REVOKED object");
         return NULL;
     }
 
-    if (BN_hex2bn(&bn, serialNumber)) {
+    if (BN_hex2bn(&bn, serialNumber))
+    {
         ASN1_INTEGER *ser = BN_to_ASN1_INTEGER(bn, NULL);
-        if (ser) {
+        if (ser)
+        {
             X509_REVOKED_set_serialNumber(r, ser);
             ASN1_INTEGER_free(ser);
         }
         BN_free(bn);
-    } else {
+    }
+    else
+    {
         BIO_printf(err, "makeRevoked: Unable to parse"
                    " serial number");
         goto out;
@@ -57,12 +62,14 @@ makeRevoked(sqlite3 *db, BIO *err,char *serialNumber,  char* timestamp)
     ASN1_TIME *tm = NULL;
 
     tm = ASN1_UTCTIME_new();
-    if (!tm) {
+    if (!tm)
+    {
         BIO_printf(err, "Unable to create an ASN1_UTCTIME object");
     }
     //X509_gmtime_adj(tm,0);
     ASN1_UTCTIME_set_string(tm, timestamp);
-    if (!X509_REVOKED_set_revocationDate(r, tm)) {
+    if (!X509_REVOKED_set_revocationDate(r, tm))
+    {
         BIO_printf(err, "makeRevoked: Unable to "
                    "set revocation date");
         goto out;
@@ -72,6 +79,8 @@ makeRevoked(sqlite3 *db, BIO *err,char *serialNumber,  char* timestamp)
 
     return r;
 out:
+    if (tm)
+        ASN1_TIME_free(tm);
     if (rtmp)
         ASN1_ENUMERATED_free(rtmp);
     if (bn)
@@ -108,9 +117,9 @@ crlToDatabase(sqlite3 *db,
     char* buff = crlWriteToText(err, crl);
     insert_crl(db, errorMsg, "42", buff);
     if (crlnum)
-        {
+    {
         ASN1_INTEGER_free(crlnum);
-        }
+    }
     free(buff);
 }
 
@@ -119,14 +128,17 @@ crlWriteToText(BIO *err, X509_CRL *crl)
 {
     BUF_MEM *bptr;
 
-    BIO *out = BIO_new(BIO_s_mem());
-
-    if (!crl) {
+    if (!crl)
+    {
         BIO_printf(err, "No CRL object to write!");
         return;
     }
-    if (!out) {
+
+    BIO *out = BIO_new(BIO_s_mem());
+    if (!out)
+    {
         BIO_printf(err, "Unable to create a BIO");
+        BIO_free_all(out);
         return;
     }
     PEM_write_bio_X509_CRL(out, crl);
@@ -145,9 +157,8 @@ crlWriteToText(BIO *err, X509_CRL *crl)
 void
 crlWriteToFile(BIO *err, X509_CRL *crl, char *fn)
 {
-    BIO *out = NULL;
-
-    if (!crl || !fn) {
+    if (!crl || !fn)
+    {
         if (!crl)
             BIO_printf(err, "No CRL object to write!");
         else
@@ -155,13 +166,15 @@ crlWriteToFile(BIO *err, X509_CRL *crl, char *fn)
         return;
     }
 
-    out = BIO_new(BIO_s_file());
-    if (!out) {
+    BIO *out = BIO_new(BIO_s_file());
+    if (!out)
+    {
         BIO_printf(err, "Unable to create a BIO");
         return;
     }
 
-    if (BIO_write_filename(out, fn) == 1) {
+    if (BIO_write_filename(out, fn) == 1)
+    {
         if ((PEM_write_bio_X509_CRL(out, crl)) == 0)
             BIO_printf(err, "Unable to write the CRL");
     }
@@ -169,33 +182,37 @@ crlWriteToFile(BIO *err, X509_CRL *crl, char *fn)
     BIO_free_all(out);
 }
 
-void add_revoked_certs(sqlite3 *db, BIO *err, char* zErrMsg,X509_CRL* crl)
+void add_revoked_certs(sqlite3 *db, BIO *err, char* zErrMsg, X509_CRL* crl)
 {
     // get a list of serial_numbers
-    sqlite3_stmt *select_stmt = get_revoked(db, zErrMsg);
+    sqlite3_stmt *stmt = get_revoked(db, zErrMsg);
 
-    int rc = sqlite3_step( select_stmt );
-    while( rc == SQLITE_ROW)
+    int rc = sqlite3_step(stmt);
+    while(rc == SQLITE_ROW)
     {
         char* serial = NULL;
         char* timestamp = NULL;
 
-        get_revoked_item( select_stmt, &serial, &timestamp );
+        get_revoked_item(stmt, &serial, &timestamp);
         printf("add_revoked_certs serial:%s, timestamp:%s\n", serial, timestamp);
         X509_REVOKED* rev = makeRevoked(db,err,serial, timestamp);
         if (rev)
+        {
             X509_CRL_add0_revoked(crl, rev);
-        rc = sqlite3_step( select_stmt );
+        }
+        rc = sqlite3_step(stmt);
     }
+    sqlite3_finalize(stmt);
 }
 
 X509_CRL *
-createCRL(BIO *err, X509 *cert,EVP_PKEY *cakey)
+createCRL(BIO *err, X509 *cert, EVP_PKEY *cakey)
 {
     X509_CRL *crl = NULL;
     ASN1_TIME *tm = NULL;
 
-    if (!cert || !cakey) {
+    if (!cert || !cakey)
+    {
         BIO_printf(err, "createCRL requires both "
                    "an X509 cert pointer and an RSA key pointer");
         return NULL;
@@ -206,13 +223,15 @@ createCRL(BIO *err, X509 *cert,EVP_PKEY *cakey)
         BIO_printf(err, "Unable to create an X509_CRL object");
         return NULL;
     }
-    if (!X509_CRL_set_version(crl, 1)) {
+    if (!X509_CRL_set_version(crl, 1))
+    {
         BIO_printf(err, "Unable to set CRL version!");
         goto out;
     }
 
     tm = ASN1_TIME_new();
-    if (!tm) {
+    if (!tm)
+    {
         BIO_printf(err, "Unable to create an ASN1_TIME object");
         goto out;
     }
@@ -220,7 +239,8 @@ createCRL(BIO *err, X509 *cert,EVP_PKEY *cakey)
     X509_CRL_set_lastUpdate(crl, tm);
 
     ASN1_INTEGER *tmpser = ASN1_INTEGER_new();
-    if (tmpser) {
+    if (tmpser)
+    {
         ASN1_INTEGER_set(tmpser, 1L);
         X509_CRL_add1_ext_i2d(crl, NID_crl_number, tmpser, 0, 0);
         ASN1_INTEGER_free(tmpser);
@@ -228,15 +248,19 @@ createCRL(BIO *err, X509 *cert,EVP_PKEY *cakey)
     X509_gmtime_adj(tm, 60*60*24); // valid for 1 day
     X509_CRL_set_nextUpdate(crl, tm);
 
-    if (!X509_CRL_set_issuer_name(crl, X509_get_subject_name(cert))) {
+    if (!X509_CRL_set_issuer_name(crl, X509_get_subject_name(cert)))
+    {
         BIO_printf(err, "Unable to set the issuer "
                    "name for the new CRL");
         goto out;
     }
 
+    ASN1_TIME_free(tm);
     return crl;
 
 out:
+    if (tm)
+        ASN1_TIME_free(tm);
     if (crl)
         X509_CRL_free(crl);
     return NULL;

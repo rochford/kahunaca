@@ -31,28 +31,36 @@ create_tables(sqlite3 *db, char* errorMsg);
 int
 insert_cert(sqlite3 *db,
             char* errorMsg,
-            char* serial,
-            char* subject,
-            char* issuer,
-            char* pkcs12);
+            const char* serial,
+            const char* subject,
+            const char* issuer,
+            const char* pkcs12);
 
 int
-revoke_cert(sqlite3 *db, char* timestamp, char* serial);
+revoke_cert(sqlite3 *db,
+            const char* timestamp,
+            const char* serial);
 
 int
-update_serial(sqlite3 *db, char* serial);
+update_serial(sqlite3 *db, const char* serial);
 
 int
-update_crl_number(sqlite3 *db, char* errorMsg, char* crl_number);
+update_crl_number(sqlite3 *db,
+                  char* errorMsg,
+                  const char* crl_number);
 
 sqlite3_stmt*
 get_revoked(sqlite3 *db, char* errorMsg);
 
 void
-get_revoked_item(sqlite3_stmt *stmt, char** serial, char** timestamp);
+get_revoked_item(sqlite3_stmt *stmt,
+                 char** serial,
+                 char** timestamp);
 
 int
-insert_crl(sqlite3 *db, char* errorMsg, char* serial, char* data);
-
+insert_crl(sqlite3 *db,
+           char* errorMsg,
+           const char* serial,
+           const char* data);
 
 #endif // DATABASE_H
