@@ -42,8 +42,8 @@ crlWriteToText(BIO *err, X509_CRL *crl);
 X509_REVOKED *
 makeRevoked(sqlite3* db,
             BIO* err,
-            char* serialNumber,
-            char* timestamp);
+            const char* serialNumber,
+            const char* timestamp);
 
 X509_CRL *
 createCRL(BIO *err,
