@@ -25,8 +25,8 @@
 #include <openssl/bn.h>
 #include <sqlite3.h>
 
-BIGNUM getNextSerialNumber(sqlite3 *db);
-char* serialNumberBigNumToString(BIGNUM serial);
+BIGNUM* getNextSerialNumber(sqlite3 *db);
+char* serialNumberBigNumToString(BIGNUM* serial);
 char* timeNow();
 
 #endif // UTILS_H

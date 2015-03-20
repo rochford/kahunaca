@@ -37,12 +37,16 @@
 void create_cert(BIO* bio_err,
                  sqlite3 *db,
                  char *zErrMsg,
-                 BIGNUM ser,
+                 BIGNUM* ser,
                  const char* cname,
                  BIO *caRootCertBIO,
                  X509 *cacert,
                  EVP_PKEY *cakey)
 {
+    char* serialStr = NULL;
+    char* subj = NULL;
+    char *buff = NULL;
+    char* issuer = NULL;
     // client cert & key
     X509 *x509=NULL;
     EVP_PKEY *pkey=NULL;
@@ -62,20 +66,20 @@ void create_cert(BIO* bio_err,
 
     // create pkcs#12 bundle.
     certs = sk_X509_new_null();
-    sk_X509_push(certs, cacert);
-    sk_X509_push(certs, rootCert);
+    sk_X509_push(certs, cacert); // mem leak if cannot push?
+    sk_X509_push(certs, rootCert); // mem leak if cannot push?
 
-    mkcert(bio_err, &x509, &pkey, cacert, &cakey,1024, &ser, cname, 365*10);
+    mkcert(bio_err, &x509, &pkey, cacert, &cakey,1024, ser, cname, 365*10);
 
-    char* issuer = X509_NAME_oneline(X509_get_subject_name(cacert), 0, 0);
-    char* subj = X509_NAME_oneline(X509_get_subject_name(x509), 0, 0);
-    char* serialStr = serialNumberBigNumToString(ser);
+    issuer = X509_NAME_oneline(X509_get_subject_name(cacert), 0, 0);
+    subj = X509_NAME_oneline(X509_get_subject_name(x509), 0, 0);
+    serialStr = serialNumberBigNumToString(ser);
 
     sk_X509_push(certs, x509);
     p12 = PKCS12_create("test", "My Certificate", pkey, x509, certs, 0,0,0,0,0);
     if (!p12) {
         ERR_print_errors (bio_err);
-        return;
+        goto cleanup;
     }
 
     BIO* b64 = BIO_new(BIO_f_base64());
@@ -92,7 +96,7 @@ void create_cert(BIO* bio_err,
 
     BIO_get_mem_ptr(b64, &bptr);
 
-    char *buff = (char *)malloc(bptr->length);
+    buff = (char *)malloc(bptr->length);
     memcpy(buff, bptr->data, bptr->length-1);
     buff[bptr->length-1] = 0;
 
@@ -103,15 +107,19 @@ void create_cert(BIO* bio_err,
 
     update_serial(db, serialStr);
 
+    BIO_free_all(b64);
+cleanup:
     free(buff);
 
     OPENSSL_free(subj);
     OPENSSL_free(issuer);
 
+    sk_X509_free(certs);
     PKCS12_free(p12);
-    //    X509_free(x509);
-    //    EVP_PKEY_free(pkey);
-    BIO_free_all(b64);
+    X509_free(x509);
+    X509_free(rootCert);
+    EVP_PKEY_free(pkey);
+    free(serialStr);
 }
 
 EVP_PKEY *load_key(BIO *err,

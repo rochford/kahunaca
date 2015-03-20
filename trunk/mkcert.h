@@ -37,7 +37,7 @@ void
 create_cert(BIO* bio_err,
             sqlite3 *db,
             char *zErrMsg,
-            BIGNUM ser,
+            BIGNUM* ser,
             const char* cname,
             BIO *caRootCertBIO,
             X509 *cacert,
