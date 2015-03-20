@@ -36,12 +36,12 @@ int main(int argc, char **argv)
 
     int rc = sqlite3_open("test.db", &db);
 
-    create_tables(db, zErrMsg);
-    BIGNUM ser = getNextSerialNumber(db);
-
     SSLeay_add_all_algorithms();
     ERR_load_crypto_strings();
     CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
+
+    create_tables(db, zErrMsg);
+    BIGNUM* ser = getNextSerialNumber(db);
 
     BIO *bio_err = BIO_new_fp(stdout, BIO_NOCLOSE);
 
@@ -50,8 +50,7 @@ int main(int argc, char **argv)
         BIO_printf(bio_err, "usage: ./kahuna_ca (revoke) serial\n");
         BIO_printf(bio_err, "usage: ./kahuna_ca crl\n");
 
-        BIO_free(bio_err);
-        return(0);
+        goto clean_up;
     }
 
     BIO *caRootCertBIO = BIO_new_mem_buf((void*)rootCaCert, -1);
@@ -124,10 +123,13 @@ clean_up:
     BIO_free_all(cakeyBIO);
     BIO_free_all(cacertBIO);
     BIO_free_all(caRootCertBIO);
+    BIO_free(bio_err);
+    BN_free(ser);
+
     CRYPTO_cleanup_all_ex_data();
 
     CRYPTO_mem_leaks(bio_err);
-    BIO_free(bio_err);
+    sqlite3_close(db);
 
     return(0);
 }

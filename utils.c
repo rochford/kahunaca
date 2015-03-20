@@ -24,29 +24,31 @@
 
 #include "utils.h"
 
-BIGNUM getNextSerialNumber(sqlite3 *db)
+BIGNUM* getNextSerialNumber(sqlite3 *db)
 {
-    BIGNUM one;
-    BN_init(&one);
-    BN_one(&one);
+    BIGNUM* one = BN_new();
+    BN_one(one);
 
-    sqlite3_stmt *select_stmt = NULL;
+    sqlite3_stmt *stmt = NULL;
 
     char* sql = "SELECT SERIAL_NUMBER FROM CERT_META_DATA;";
-    int rc = sqlite3_prepare_v2(db, sql, -1, &select_stmt, NULL);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
 
     BIGNUM *num = NULL;
     if (SQLITE_OK == rc)
     {
-        int res = sqlite3_step(select_stmt);
+        int res = sqlite3_step(stmt);
         if (res == SQLITE_ROW) {
-            char *serial = (char*)sqlite3_column_text(select_stmt, 0);
-            res = sqlite3_step(select_stmt);
+            char *serial = (char*)sqlite3_column_text(stmt, 0);
             serialNumberStringToBigNum(serial, &num);
-            BN_add(num, num, &one);
-            return *num;
+            BN_add(num, num, one);
+            BN_free(one);
+            sqlite3_finalize(stmt);
+
+            return num;
         }
     }
+    sqlite3_finalize(stmt);
     return one;
 }
 
@@ -56,9 +58,9 @@ int serialNumberStringToBigNum(char* text, BIGNUM **result)
     return r;
 }
 
-char* serialNumberBigNumToString(BIGNUM serial)
+char* serialNumberBigNumToString(BIGNUM* serial)
 {
-    return BN_bn2dec(&serial);
+    return BN_bn2dec(serial);
 }
 
 void printBigNum(BIGNUM n)
